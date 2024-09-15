@@ -1,0 +1,37 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<div>
+  <div class="input_container">
+      <form>
+            <label for="objname">Название</label>
+            <input class="inp title" type="text" id="objname" placeholder="Введите название.." value="{{cart.name}}">
+
+            <label for="address">Адрес</label>
+            <input class="inp title" type="text" id="address" placeholder="Введите адрес.." value="{{cart.address}}">
+
+            <label for="coord">Координаты</label>
+            <input class="inp title" type="text" id="coord" placeholder="Введите координаты.." value="{{cart.coordinate}}">
+
+            <label for="descr">Описание</label>
+            <input class="inp title" type="text" id="descr" placeholder="Введите описание.." value="{{cart.description}}">
+            <label>Выбранные Теги:</label>
+      </form>
+      <div>
+          {% for tag in cart.cart_list %}
+           <label class="radio-button">
+               <input type="radio" {% if tag.is_main == 1 %}checked="checked"{%endif%} name="radio">
+               <span class="checkmark"></span>
+               <div class="border_div">
+                       <div class="row">
+                          {% include 'include_components/tag_card.html' %}
+                       </div>
+               </div>
+               </label>
+          {% endfor %}
+      </div>
+
+
+  </div>
+
+</div>
+{% endblock %}

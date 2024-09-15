@@ -1,0 +1,379 @@
+main > .container{
+    padding:  0px 0px 0px;
+}
+
+body {
+  margin: 0;
+  background-color: white;
+  font-family: Verdana;
+  font-size: 0.9vw;
+}
+
+.background_sub{
+    background-image: linear-gradient(rgba(77, 75, 127, 1), rgba(184, 183, 211, 1));
+}
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: rgba(77, 75, 127, 1);
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  text-transform: uppercase;
+}
+#home{
+    float: left;
+}
+li {
+  float: right;
+}
+
+li a {
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 20px 30px;
+  text-decoration: none;
+}
+
+li a:hover:not(.active) {
+  background-color: rgba(52, 51, 95, 1);
+}
+
+.active {
+  background-color:rgba(236, 143, 30, 1);
+  font-weight:bold;
+  box-shadow: rgba(236, 61, 30, 1) 0px -50px 36px -28px inset;;
+}
+input[type=text] {
+  width: 40%;
+  box-sizing: border-box;
+  border: 2px solid rgba(184, 183, 211, 1);
+  border-radius: 40px;
+  font-size: 1vw;
+  background-color: rgba(77, 75, 127, 1);
+  background-position: 10px 10px;
+  background-repeat: no-repeat;
+  padding: 20px 40px 20px 40px;
+  color: white;
+  margin-right: 30%;
+  margin-left: 30%;
+}
+::placeholder {
+  color: rgba(255, 255, 255, 0.47);
+  font-size: 1vw;
+}
+.card {
+  border: 10px solid transparent;
+  background: linear-gradient(to bottom, rgba(77, 75, 127, 1), rgba(184, 183, 211, 1));
+  background-origin: border-box;
+  box-shadow: inset 0px 0px 0px 100vw #fff;
+  border-radius: 20px;
+  max-width: 400px;
+  max - height: 400px;
+  margin-top: 60px;
+}
+.grid-container {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  padding-left: 10%;
+  padding-right: 10%;
+  column-gap: 2%;
+}
+
+.grid-item {
+  font-size: 1.2vw;
+  text-align: center;
+}
+
+.down{
+    padding-bottom: 10%;
+}
+.image{
+    margin-top: 5%;
+    display: block;
+    object-fit: cover;
+    margin-left: auto;
+    margin-right: auto;
+    width: 90%;
+    height: 220px;
+    border-radius: 10px;
+    border: 5px solid rgba(77, 75, 127, 1);
+}
+.image.single_tag{
+    width: 40%;
+    height: 400px;
+    margin-left:2%;
+    padding-top: 0;
+    margin-right: 20px;
+    float: left;
+}
+.row{
+     margin-right: 3%;
+
+}
+.row>div>div{
+      align: left;
+      line-height: 75px;
+      line-height: 1.6;
+      margin-left: 5%;
+}
+.title{
+    font-size: 1.2vw;
+    font-weight: semi-bold;
+    margin-bottom: 1%;
+}
+.info_sheet_tag{
+  height: 100vh;
+  width: 60%;
+  margin-left: auto;
+  margin-right:auto;
+
+  background-color: white;
+  opacity:0.9;
+  overflow: hidden;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+.button_add{
+  text-decoration:none;
+  text-align: center;
+  padding: 0.8% 8%;
+  font-size: 0.8vw;
+  cursor: pointer;
+  color: #fff;
+  background-color: rgba(77, 75, 127, 1);
+  border-radius: 30px;
+  border: none;
+  float:right;
+  margin-right:3%;
+
+}
+.button_add.button_about{
+  border: 2px solid rgba(77, 75, 127, 1);
+  width: 90%;
+  height:40px;
+  padding: 0;
+  margin-bottom: 30px;
+  border-radius: 10px;
+  margin-left: auto;
+  margin-right: auto;
+  float:none;
+
+}
+.button_add.button_about.outline{
+    background-color: white;
+    color: black;
+    margin-bottom: 10px;
+}
+.button_add:hover{
+  opacity:0.6;
+  color: black;
+}
+.button_add.button_about.outline:hover{
+    background-color: rgba(77, 75, 127, 1);
+    color: white;
+}
+.button_add.delete{
+    background-color: rgba(77, 75, 127, 1);
+    color: white;
+}
+.text_a{
+    font-size: 0.7vw;
+    display: block;
+    text-decoration: none;
+}
+.title_tags_list{
+    margin-bottom: 40px;
+    text-align: left;
+    margin-left: 5%;
+}
+
+input[type=text].inp, select {
+  width: 100%;
+  height: 50px;
+  color: black;
+  margin: 15px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-sizing: border-box;
+  background-color: rgba(184, 183, 211, 1);
+}
+
+input[type=submit] {
+  width: 100%;
+  background-color: rgba(236, 143, 30, 1);
+  color: white;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  float:bottom;
+}
+.input_container{
+     border-radius: 5px;
+     background-color: white;
+     padding: 10px 30%;
+     height: 100vh;
+}
+
+.border_div{
+    width: 100%;
+    height: 50%;
+    border: 6px solid transparent;
+    border-radius: 10px;
+    background: linear-gradient(to right, rgba(77, 75, 127, 1), rgba(184, 183, 211, 1));
+    margin-bottom: 10px;
+    margin-top: 10px;
+    background-origin: border-box;
+    box-shadow: inset 0px 0px 0px 100vw #fff;
+}
+
+.nk {
+    align-items: center;
+    background-color: none;
+    border-radius: 13px;
+    box-sizing: border-box;
+    display: block;
+    height: 40px;
+    width: 90%;
+    padding: 8px;
+    transition: max-width .4s ease;
+    margin: auto;
+    border: 3px solid rgba(77, 75, 127, 1);
+}
+
+.nk-text {
+    color: var(--chat-widget--font-color);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity .4s ease;
+    text-decoration:none;
+
+}
+.nk-text:hover{
+    background-color: rgba(77, 75, 127, 0.5);
+    border: none;
+    color: white;
+}
+.nk-fill{
+    background-color: rgba(77, 75, 127, 1);
+    color: white;
+    margin-top: 6px;
+    margin-bottom: 20px;
+}
+.nk-button {
+    background: none;
+    border: 0;
+    display: inline-block;
+    font-family: Yandex Sans Text, Arial, Helvetica, sans-serif;
+    margin: 0;
+    outline: 0;
+    padding: 0;
+    position: relative;
+    text-align: center;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    white-space: nowrap;
+}
+#cart-button{
+    margin-top: 20px;
+    margin-right: 100px;
+    float:right;
+}
+i {
+    position: relative;
+    border: 6px solid rgba(77, 75, 127, 1);
+    background: rgba(184, 183, 211, 1);
+    border-radius: 100%;
+    font-size: 77px;
+    padding: 0 16px;
+
+}
+.numberCircle {
+    z-index: 2;
+    display: flex;
+    position: absolute;
+    border-radius: 100%;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 0, 0, 1);
+    color: white;
+    text-align: center;
+    margin-top: 58px;
+    margin-left: 53px;
+    font-size: 18px;
+    font-weight: bold;
+}
+#cart_number{
+    margin:auto;
+}
+.row > img{
+    margin-bottom: 3%;
+}
+
+
+.radio-button {
+  display: flex;
+  position: relative;
+  margin-left: 15px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Hide the browser's default radio button */
+.radio-button input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+
+}
+
+/* Create a custom radio button */
+.checkmark {
+    margin-bottom: auto;
+    margin-top: auto;
+    margin-right: 20px;
+    top: 0;
+    left: 0;
+    height: 1vw;
+    width: 1vw;
+    border: 4px solid rgba(77, 75, 127, 1);
+    border-radius: 50%;
+    display: block;
+    float: left;
+}
+
+/* On mouse-over, add a grey background color */
+.radio-button:hover input ~ .checkmark {
+  background-color: rgba(184, 183, 211, 1);
+}
+
+/* When the radio button is checked, add a blue background */
+.radio-button input:checked ~ .checkmark {
+  background-color: rgba(77, 75, 127, 1);
+}
+
+/* Create the indicator (the dot/circle - hidden when not checked) */
+
+
+/* Show the indicator (dot/circle) when checked */
+
+.row-radio-button{
+     justify-content: flex-start;
+     margin-top: 3%;
+     margin-right: 3%;
+}
+
+.row-margin{
+    margin-top: 1.5%;
+}

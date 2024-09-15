@@ -1,0 +1,9 @@
+{% block content %}
+<div class="grid-item">
+                    <div class="card">
+                        <img class="image" src={{tag.src}}>
+                        <div class="title_tags_list title">{{tag.title}}</div>
+                        <a class="nk nk-text nk-fill" href="{% url 'tag' tag_id=tag.id %}">Подробнее</a>
+                    </div>
+</div>
+{% endblock %}

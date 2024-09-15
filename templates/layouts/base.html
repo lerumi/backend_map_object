@@ -1,0 +1,19 @@
+{% load static%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="{% static '/css/main.css' %}" rel="stylesheet">
+    <title>tags</title>
+</head>
+<body class="{% if '/tag/' in request.path %}background_sub{% endif %}">
+   <ul>
+        <li id ="home"><a href="{% url 'tags'%}">Главная</a></li>
+   </ul>
+
+   {% block content %}
+   {% endblock %}
+
+
+</body>
+</html>
