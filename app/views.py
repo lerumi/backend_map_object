@@ -63,38 +63,56 @@ TAG_LIST = [
     }]
 
 
-def cart_list(items_count):
-    return [
-        {
-            'id': TAG_LIST[i]['id'],
-            'title':  TAG_LIST[i]['title'],
-            'src':  TAG_LIST[i]['src'],
-            'description': TAG_LIST[i]['description'],
-            'is_main': i==1
-        }for i in range(items_count-1)
-    ]
-
-
 CART = [
     {
-        'id': 1,
-        'address': 'jicdi',
-        'name': f'jsjsja = {1}',
-        'coordinate': 11,
-        'description': 'kakaka',
-        'cart_list': cart_list(10)
+        'id': 0,
+        'address': 'Манежная площадь, 1, стр. 2',
+        'name': 'Вкусно — и точка',
+        'coordinate': '55.755804,37.614608',
+        'description': 'Вкусно и точка обычный ресторан быстрого питания.',
+        'cart_list': [
+            {
+                'id': TAG_LIST[0]['id'],
+                'title':  TAG_LIST[0]['title'],
+                'src':  TAG_LIST[0]['src'],
+                'description': TAG_LIST[0]['description'],
+                'is_main': 1
+            }
+        ]
     },
     {
-        'id': 2,
-        'address': 'jicdi',
-        'name': f'jsjsja = {2}',
-        'coordinate': 22,
-        'description': 'kakaka',
-        'cart_list': cart_list(2)
+        'id': 1,
+        'address': 'просп. Мира, 150, Москва',
+        'name': 'Cosmos Moscow Vdnh',
+        'coordinate': '55.822276,37.647037',
+        'description': 'Отличный отель с давними традициями отельного гостеприимства',
+        'cart_list': [
+            {
+                'id': TAG_LIST[0]['id'],
+                'title': TAG_LIST[0]['title'],
+                'src': TAG_LIST[0]['src'],
+                'description': TAG_LIST[0]['description'],
+                'is_main': 0
+             },
+            {
+                'id': TAG_LIST[1]['id'],
+                'title':  TAG_LIST[1]['title'],
+                'src':  TAG_LIST[1]['src'],
+                'description': TAG_LIST[1]['description'],
+                'is_main': 1
+            },
+            {
+                'id': TAG_LIST[2]['id'],
+                'title':  TAG_LIST[2]['title'],
+                'src':  TAG_LIST[2]['src'],
+                'description': TAG_LIST[2]['description'],
+                'is_main': 0
+            }
+        ]
     }
 ]
 
-current_cart_id = 0
+current_cart_id = 1
 # Create your views here.
 def tag_list(request):
     search_tag = request.GET.get('search_tag')
@@ -102,11 +120,13 @@ def tag_list(request):
         search_tag = ''
         tag_list= TAG_LIST
     else: tag_list = list(filter(lambda tag: tag['title'].lower().startswith(search_tag.lower()), TAG_LIST))
-    count_cart_items = len(CART[current_cart_id]['cart_list'])
-    return render(request, 'tag_list.html', {'tags': {'tag_list': tag_list,
-                                                      'search_tag': search_tag,
-                                                      'cart_count': count_cart_items,
-                                                      'current_cart_id': current_cart_id}})
+    for cart_item in CART:
+        if cart_item['id'] == current_cart_id:
+            count_cart_items = len(cart_item['cart_list'])
+            return render(request, 'tag_list.html', {'tags': {'tag_list': tag_list,
+                                                              'search_tag': search_tag,
+                                                              'cart_count': count_cart_items,
+                                                              'current_cart_id': current_cart_id}})
 
 
 def tag(request, tag_id):
@@ -115,5 +135,5 @@ def tag(request, tag_id):
 
 
 def cart(request, cart_id):
-    cart_item = CART[cart_id]
-    return render(request, 'cart.html', {'cart': cart_item})
+    for cart_item in CART:
+        if cart_item['id']==current_cart_id: return render(request, 'cart.html', {'cart': cart_item})
