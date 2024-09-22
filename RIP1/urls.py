@@ -16,13 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from app.views import tag_list
+from app.views import tag_list, add_tag_into_cart
 from app.views import tag
-from app.views import cart
+from app.views import cart, delete_draft_cart
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', tag_list, name = 'tags'),
-    path('tag/<int:tag_id>', tag, name = 'tag'),
-    path('cart/<int:cart_id>', cart, name='cart')
+    path('', tag_list, name='tags'),
+    path('tag/<int:tag_id>', tag, name='tag'),
+    path('cart/<int:cart_id>', cart, name='cart'),
+    path('add_tag', add_tag_into_cart, name='add_tag'),
+    path('delete_cart', delete_draft_cart, name='del_cart')
 ]

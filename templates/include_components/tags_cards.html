@@ -1,9 +1,14 @@
 {% block content %}
 <div class="grid-item">
                     <div class="card">
-                        <img class="image" src={{tag.src}}>
-                        <div class="title_tags_list title">{{tag.title}}</div>
-                        <a class="nk nk-text nk-fill" href="{% url 'tag' tag_id=tag.id %}">Подробнее</a>
+                        <img class="image" src={{tag.tag_image}}>
+                        <div class="title_tags_list title">{{tag.tag_name}}</div>
+                        <a class="nk nk-text" href="{% url 'tag' tag_id=tag.id %}">Подробнее</a>
+                        <form action="{% url 'add_tag' %}" method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="tag_id" value="{{ tag.id }}">
+                            <button class = "nk nk-text nk-fill" type="submit">Добавить</button>
+                        </form>
                     </div>
 </div>
 {% endblock %}

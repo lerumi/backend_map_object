@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'app'
 ]
 
 MIDDLEWARE = [
@@ -78,11 +79,11 @@ WSGI_APPLICATION = 'RIP1.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'HOST': 'localhost',
-        'PORT': 5433,
+        'NAME': 'postgres',
         'USER': 'postgres',
-        'PASSWORD': '235711',
-        'NAME': 'map_obj',
+        'PASSWORD': 'postgres',
+        'HOST': 'localhost',
+        'PORT': 15432,
     }
 }
 

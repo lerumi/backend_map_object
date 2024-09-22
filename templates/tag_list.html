@@ -2,7 +2,7 @@
 {% block content %}
 
     <div>
-        <a id ="cart-button" class="nk-button {% if '/cart/' in request.path %}active{% endif %}" href="{% url 'cart' cart_id=tags.current_cart_id%}">
+        <a id ="cart-button" class="nk-button {% if '/cart/' in request.path %}active{% endif %}" {%if tags.cart_count > 0%}href="{% url 'cart' cart_id=tags.current_cart_id%}"{%endif%}>
             <div class="numberCircle"><span id="cart_number">{{tags.cart_count}}</span></div>
             <i>
                 <svg width="52" height="52" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

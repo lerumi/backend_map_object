@@ -17,7 +17,7 @@
             <label>Выбранные Теги:</label>
       </form>
       <div>
-          {% for tag in cart.cart_list %}
+          {% for tag in cart_tags_list %}
            <label class="radio-button">
                <input type="radio" {% if tag.is_main == 1 %}checked="checked"{%endif%} name="radio">
                <span class="checkmark"></span>
@@ -29,8 +29,11 @@
                </label>
           {% endfor %}
       </div>
-
-
+      <form action="{% url 'del_cart' %}" method="POST">
+          {% csrf_token %}
+          <input type="hidden" name="cart_id" value="{{ cart.id }}">
+          <input type="submit" value="Удалить">
+      </form>
   </div>
 
 </div>
