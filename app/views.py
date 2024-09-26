@@ -10,11 +10,11 @@ def tag_list(request):
         search_tag = ''
         tag_list= Tags.objects.filter(tag_status=True)
     else: tag_list = Tags.objects.filter(tag_name__icontains=search_tag, tag_status=True)
-    try:
+    if(request.user.created_objects.filter(obj_status="Черновик").first()!= None):
         current_cart = request.user.created_objects.get(obj_status="Черновик")
         current_cart_id = current_cart.id
         count_cart_items = ObjectsTagsItem.objects.filter(object=current_cart).count()
-    except:
+    else:
         count_cart_items = 0
         current_cart_id = 0
     return render(request, 'tag_list.html', {'tags': {'tag_list': tag_list,
@@ -27,6 +27,8 @@ def tag(request, tag_id):
 
 def cart(request, cart_id):
     cart_item = Objects.objects.get(id=cart_id)
+    if(Objects.objects.get(id=cart_id).obj_status=="Удален"):
+        return redirect('tags')
     tag_items = Tags.objects.filter(objectstagsitem__object = cart_item)
     return render(request, 'cart.html', {'cart': cart_item, 'cart_tags_list': tag_items})
 
