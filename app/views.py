@@ -45,7 +45,7 @@ def cart(request, cart_id):
     cart_item = Objects.objects.get(id=cart_id)
     if(Objects.objects.get(id=cart_id).obj_status=="Удален"):
         return redirect('tags')
-    tag_items = Tags.objects.filter(objectstagsitem__object = cart_item)
+    tag_items = Tags.objects.filter(tag_set__object = cart_item)
     return render(request, 'cart.html', {'cart': cart_item, 'cart_tags_list': tag_items})
 
 def add_tag_into_cart(request):
@@ -90,10 +90,21 @@ class tags_list_api(APIView):
         return Response({'tags': serializer.data, 'current cart id': current_cart_id, 'count cart items': count_cart_items})
 
     def post(self, request, format=None):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer = self.serializer_class(data=request.data, partial=True)
+        if 'tag_image' in serializer.initial_data:
+            pic_result1 = 'pic'
+            serializer.initial_data['tag_image'] = pic_result1
+            if serializer.is_valid():
+                new_tag = serializer.save()
+                pic_result = add_pic(new_tag, request.FILES.get('tag_image'))
+                if 'error' in pic_result.data:
+                    return pic_result
+                pic_result1 = pic_result.data['result']
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class tag_api(APIView):
@@ -107,11 +118,11 @@ class tag_api(APIView):
     def put(self, request, tag_id, format=None):
         tag = get_object_or_404(self.model_class, id=tag_id)
         serializer = self.serializer_class(tag, data=request.data, partial=True)
-        if request.data.get('tag_image') in serializer.initial_data:
+        if 'tag_image' in serializer.initial_data:
             pic_result = add_pic(tag, serializer.initial_data['tag_image'])
             if 'error' in pic_result.data:
                 return pic_result
-        serializer.initial_data['tag_image'] = pic_result.data['result']
+            serializer.initial_data['tag_image'] = pic_result.data['result']
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -129,7 +140,11 @@ class tag_api(APIView):
         return Response(status=status.HTTP_208_ALREADY_REPORTED)
     def delete(self, request, tag_id, format=None):
         tag = get_object_or_404(self.model_class, id=tag_id)
+        tags = ObjectsTagsItem.objects.filter(tag = tag_id)
+        for one_tag in tags:
+            one_tag.delete()
         tag.delete()
+        del_pic(tag_id)
         return Response(status=status.HTTP_204_NO_CONTENT)
 class object_cart_api(APIView):
     model_class = Objects

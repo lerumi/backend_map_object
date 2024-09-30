@@ -28,3 +28,19 @@ def add_pic(new_tag, pic):
     new_tag.save()
 
     return Response({"message": "success", "result": result})
+def process_file_delete(client, image_name):
+    try:
+        client.remove_object('mapobject', image_name)
+        return Response({"message": "Удалено"})
+    except Exception as e:
+        return {"error": str(e)}
+def del_pic(del_tag_id):
+    client = Minio(
+        endpoint=settings.AWS_S3_ENDPOINT_URL,
+        access_key=settings.AWS_ACCESS_KEY_ID,
+        secret_key=settings.AWS_SECRET_ACCESS_KEY,
+        secure=settings.MINIO_USE_SSL
+    )
+    img_obj_name = f"{del_tag_id}.jpg"
+    result = process_file_delete(client, img_obj_name)
+    return Response(result)
