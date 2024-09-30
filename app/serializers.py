@@ -21,7 +21,7 @@ class ObjectsSerializer(serializers.ModelSerializer):
 class ObjectSerializer(serializers.ModelSerializer):
     creator = serializers.StringRelatedField()
     moderator = serializers.StringRelatedField()
-    tags = ObjectsTagsItemSerializer(source='objectstagsitem_set', many=True, read_only=True)
+    tags = ObjectsTagsItemSerializer(source='object_set', many=True, read_only=True)
     class Meta:
         model = Objects
         fields = ["id", "obj_name", "obj_description", "obj_address", "obj_coordinates", "creator", "moderator",

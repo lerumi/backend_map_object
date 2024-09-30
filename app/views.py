@@ -1,5 +1,5 @@
 from django.utils import timezone
-from django.db import connection, transaction
+from django.db import connection
 from django.shortcuts import render, redirect
 from .models import Tags, Objects, ObjectsTagsItem, AuthUser
 from rest_framework.response import Response
@@ -10,6 +10,9 @@ from rest_framework.decorators import api_view
 from app.serializers import TagsSerializer, ObjectsSerializer, ObjectsTagsItemSerializer, ObjectSerializer, UserSerializer
 from django.contrib.auth import get_user_model
 from .minio import *
+from django.db.models import Q
+from rest_framework.filters import OrderingFilter
+
 def user():
     try:
         user1 = AuthUser.objects.get(id=1)
@@ -136,8 +139,8 @@ class tag_api(APIView):
         if not (ObjectsTagsItem.objects.filter(tag=tag, object=user_cart).first()):
             new_cart_tag = ObjectsTagsItem.objects.create(tag=tag, object=user_cart)
             new_cart_tag.save()
-            return Response(status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_208_ALREADY_REPORTED)
+            return Response(ObjectsTagsItemSerializer(new_cart_tag).data, status=status.HTTP_200_OK)
+        return Response({'Предупреждение': 'Данный тег уже в заявке'},status=status.HTTP_208_ALREADY_REPORTED)
     def delete(self, request, tag_id, format=None):
         tag = get_object_or_404(self.model_class, id=tag_id)
         tags = ObjectsTagsItem.objects.filter(tag = tag_id)
@@ -151,7 +154,19 @@ class object_cart_api(APIView):
     serializer_class = ObjectsSerializer
     def get(self, request, format=None):
         user1 = user()
+        start_date=request.query_params.get('start_date', None)
+        end_date=request.query_params.get('end_date', None)
+        status = request.query_params.get('status')
         object_list = user1.created_objects.exclude(obj_status="Черновик").exclude(obj_status="Удален")
+        if start_date or end_date:
+            if not (start_date):
+                object_list = object_list.filter(formation_datetime__lte=end_date)
+            elif not(end_date):
+                object_list = object_list.filter(formation_datetime__gte= start_date)
+            else:
+                object_list = object_list.filter(formation_datetime__range=[start_date, end_date])
+        if status:
+            object_list = object_list.filter(obj_status=status)
         if not (object_list):
             return Response(status=status.HTTP_404_NOT_FOUND)
         else:
