@@ -7,6 +7,7 @@ class TagsSerializer(serializers.ModelSerializer):
         model = Tags
         fields = ["id", "tag_name", "tag_description", "tag_image", "tag_status"]
 class ObjectsTagsItemSerializer(serializers.ModelSerializer):
+    tag = TagsSerializer()
     class Meta:
         model = ObjectsTagsItem
         fields = ["id", "is_main", "object", "tag"]

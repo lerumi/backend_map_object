@@ -16,19 +16,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from app.views import tag_list, add_tag_into_cart, tags_list_api
+from app.views import tag_list, add_tag_into_object, tags_list_api
 from app.views import tag, tag_api
-from app.views import cart, delete_draft_cart, object_cart_api, one_object_api, save_creator, save_moderate
+from app.views import object, delete_draft_object, object_cart_api, one_object_api, save_creator, save_moderate
 from app.views import objects_tags_item
-from app.views import user_api, autentification, logout
+from app.views import user_api, autentification, logout, image_add
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', tag_list, name='tags'),
     path('tag/<int:tag_id>', tag, name='tag'),
-    path('cart/<int:cart_id>', cart, name='cart'),
-    path('add_tag', add_tag_into_cart, name='add_tag'),
-    path('delete_cart', delete_draft_cart, name='del_cart'),
+    path('object/<int:object_id>', object, name='object'),
+    path('add_tag', add_tag_into_object, name='add_tag'),
+    path('delete_object', delete_draft_object, name='del_object'),
 
     path('api/tags/', tags_list_api.as_view(), name='get_tags'),
     path('api/tag/<int:tag_id>', tag_api.as_view(), name='get_tag'),
@@ -42,5 +42,7 @@ urlpatterns = [
     path('api/object_item/<int:object_id>/<int:tag_id>', objects_tags_item.as_view(), name='object_item'),
     path('api/user/registr', user_api.as_view(), name='registr'),
     path('api/user/auth', autentification, name='auth'),
-    path('api/user/logout', logout, name='logout')
+    path('api/user/logout', logout, name='logout'),
+
+    path('api/add_tag_image/<int:tag_id>', image_add, name='image_add')
 ]

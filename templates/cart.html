@@ -4,20 +4,20 @@
   <div class="input_container">
       <form>
             <label for="objname">Название</label>
-            <input class="inp title" type="text" id="objname" placeholder="Введите название.." value="{{cart.name}}">
+            <input class="inp title" type="text" id="objname" placeholder="Введите название.." value="{{object.name}}">
 
             <label for="address">Адрес</label>
-            <input class="inp title" type="text" id="address" placeholder="Введите адрес.." value="{{cart.address}}">
+            <input class="inp title" type="text" id="address" placeholder="Введите адрес.." value="{{object.address}}">
 
             <label for="coord">Координаты</label>
-            <input class="inp title" type="text" id="coord" placeholder="Введите координаты.." value="{{cart.coordinate}}">
+            <input class="inp title" type="text" id="coord" placeholder="Введите координаты.." value="{{object.coordinate}}">
 
             <label for="descr">Описание</label>
-            <input class="inp title" type="text" id="descr" placeholder="Введите описание.." value="{{cart.description}}">
+            <input class="inp title" type="text" id="descr" placeholder="Введите описание.." value="{{object.description}}">
             <label>Выбранные Теги:</label>
       </form>
       <div>
-          {% for tag in cart_tags_list %}
+          {% for tag in object_tags_list %}
            <label class="radio-button">
                <input type="radio" {% if tag.is_main == 1 %}checked="checked"{%endif%} name="radio">
                <span class="checkmark"></span>
@@ -29,9 +29,9 @@
                </label>
           {% endfor %}
       </div>
-      <form action="{% url 'del_cart' %}" method="POST">
+      <form action="{% url 'del_object' %}" method="POST">
           {% csrf_token %}
-          <input type="hidden" name="cart_id" value="{{ cart.id }}">
+          <input type="hidden" name="object_id" value="{{ object.id }}">
           <input type="submit" value="Удалить">
       </form>
   </div>

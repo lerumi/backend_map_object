@@ -30,44 +30,44 @@ def tag_list(request):
         tag_list= Tags.objects.filter(tag_status=True)
     else: tag_list = Tags.objects.filter(tag_name__icontains=search_tag, tag_status=True)
     if(user1.created_objects.filter(obj_status="Черновик").first()!= None):
-        current_cart = user1.created_objects.get(obj_status="Черновик")
-        current_cart_id = current_cart.id
-        count_cart_items = ObjectsTagsItem.objects.filter(object=current_cart).count()
+        current_object = user1.created_objects.get(obj_status="Черновик")
+        current_object_id = current_object.id
+        count_object_items = ObjectsTagsItem.objects.filter(object=current_object).count()
     else:
-        count_cart_items = 0
-        current_cart_id = 0
+        count_object_items = 0
+        current_object_id = 0
     return render(request, 'tag_list.html', {'tags': {'tag_list': tag_list,
                                                       'search_tag': search_tag,
-                                                      'cart_count': count_cart_items,
-                                                      'current_cart_id': current_cart_id}})
+                                                      'object_count': count_object_items,
+                                                      'current_object_id': current_object_id}})
 def tag(request, tag_id):
     tag_item = Tags.objects.get(id=tag_id)
     return render(request, 'tag.html', {'tag': tag_item})
 
-def cart(request, cart_id):
-    cart_item = Objects.objects.get(id=cart_id)
-    if(Objects.objects.get(id=cart_id).obj_status=="Удален"):
+def object(request, object_id):
+    object_item = Objects.objects.get(id=object_id)
+    if(Objects.objects.get(id=object_id).obj_status=="Удален"):
         return redirect('tags')
-    tag_items = Tags.objects.filter(tag_set__object = cart_item)
-    return render(request, 'cart.html', {'cart': cart_item, 'cart_tags_list': tag_items})
+    tag_items = Tags.objects.filter(tag_set__object = object_item)
+    return render(request, 'cart.html', {'object': object_item, 'object_tags_list': tag_items})
 
-def add_tag_into_cart(request):
+def add_tag_into_object(request):
     user1 = user()
     tag_id = request.POST.get('tag_id')
     tag = Tags.objects.get(id=tag_id)
-    user_cart, created = Objects.objects.get_or_create(creator=user1, obj_status="Черновик")
-    adding_tag_to_cart, created = ObjectsTagsItem.objects.get_or_create(tag=tag, object=user_cart)
-    adding_tag_to_cart.save()
-    user_cart.save()
+    user_object, created = Objects.objects.get_or_create(creator=user1, obj_status="Черновик")
+    adding_tag_to_object, created = ObjectsTagsItem.objects.get_or_create(tag=tag, object=user_object)
+    adding_tag_to_object.save()
+    user_object.save()
     return redirect('tags')
-def delete_draft_cart(request):
-    cart_id = request.POST.get('cart_id')
+def delete_draft_object(request):
+    object_id = request.POST.get('object_id')
     with connection.cursor() as cursor:
         cursor.execute("""
             UPDATE app_objects
             SET obj_status = 'Удален'
             WHERE id = %s
-        """, [cart_id])
+        """, [object_id])
     return redirect('tags')
 
 
@@ -83,14 +83,14 @@ class tags_list_api(APIView):
         else:
             tag_list =  self.model_class.objects.filter(tag_name__icontains=search_tag, tag_status=True)
         if (user1.created_objects.filter(obj_status="Черновик").first() != None):
-            current_cart = user1.created_objects.get(obj_status="Черновик")
-            current_cart_id = current_cart.id
-            count_cart_items = ObjectsTagsItem.objects.filter(object=current_cart).count()
+            current_object = user1.created_objects.get(obj_status="Черновик")
+            current_object_id = current_object.id
+            count_object_items = ObjectsTagsItem.objects.filter(object=current_object).count()
         else:
-            count_cart_items = 0
-            current_cart_id = 0
+            count_object_items = 0
+            current_object_id = 0
         serializer = self.serializer_class(tag_list, many=True)
-        return Response({'tags': serializer.data, 'current cart id': current_cart_id, 'count cart items': count_cart_items})
+        return Response({'tags': serializer.data, 'current object id': current_object_id, 'count object items': count_object_items})
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data, partial=True)
@@ -109,7 +109,16 @@ class tags_list_api(APIView):
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+@api_view(['post'])
+def image_add(request, tag_id, format=None):
+    tag, created = Tags.objects.get_or_create(id=tag_id)
+    pic = request.FILES.get('pic')
+    result = add_pic(tag, pic)
+    if created:
+        tag.delete()
+    if 'error' in result.data:
+        return result
+    return Response(status=status.HTTP_200_OK)
 class tag_api(APIView):
     model_class = Tags
     serializer_class = TagsSerializer
@@ -133,13 +142,13 @@ class tag_api(APIView):
 
     def post(self, request, tag_id, format=None):
         user1 = user()
-        user_cart, created = Objects.objects.get_or_create(creator=user1, obj_status="Черновик")
+        user_object, created = Objects.objects.get_or_create(creator=user1, obj_status="Черновик")
         tag = get_object_or_404(self.model_class, id=tag_id)
-        user_cart.save()
-        if not (ObjectsTagsItem.objects.filter(tag=tag, object=user_cart).first()):
-            new_cart_tag = ObjectsTagsItem.objects.create(tag=tag, object=user_cart)
-            new_cart_tag.save()
-            return Response(ObjectsTagsItemSerializer(new_cart_tag).data, status=status.HTTP_200_OK)
+        user_object.save()
+        if not (ObjectsTagsItem.objects.filter(tag=tag, object=user_object).first()):
+            new_object_tag = ObjectsTagsItem.objects.create(tag=tag, object=user_object)
+            new_object_tag.save()
+            return Response(ObjectsTagsItemSerializer(new_object_tag).data, status=status.HTTP_200_OK)
         return Response({'Предупреждение': 'Данный тег уже в заявке'},status=status.HTTP_208_ALREADY_REPORTED)
     def delete(self, request, tag_id, format=None):
         tag = get_object_or_404(self.model_class, id=tag_id)
