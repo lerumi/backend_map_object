@@ -21,7 +21,21 @@ from app.views import tag, tag_api
 from app.views import object, delete_draft_object, object_cart_api, one_object_api, save_creator, save_moderate
 from app.views import objects_tags_item
 from app.views import user_api, autentification, logout, image_add
-
+from drf_yasg.views import  get_schema_view
+from drf_yasg import openapi
+from rest_framework import permissions
+schema_view = get_schema_view(
+   openapi.Info(
+      title="Snippets API",
+      default_version='v1',
+      description="Test description",
+      terms_of_service="https://www.google.com/policies/terms/",
+      contact=openapi.Contact(email="contact@snippets.local"),
+      license=openapi.License(name="BSD License"),
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', tag_list, name='tags'),
@@ -44,5 +58,7 @@ urlpatterns = [
     path('api/user/auth', autentification, name='auth'),
     path('api/user/logout', logout, name='logout'),
 
-    path('api/add_tag_image/<int:tag_id>', image_add, name='image_add')
+    path('api/add_tag_image/<int:tag_id>', image_add, name='image_add'),
+
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]

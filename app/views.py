@@ -10,6 +10,7 @@ from rest_framework.decorators import api_view
 from app.serializers import TagsSerializer, ObjectsSerializer, ObjectsTagsItemSerializer, ObjectSerializer, UserSerializer
 from django.contrib.auth import get_user_model
 from .minio import *
+from drf_yasg.utils import swagger_auto_schema
 from django.db.models import Q
 from rest_framework.filters import OrderingFilter
 
@@ -17,7 +18,14 @@ def user():
     try:
         user1 = AuthUser.objects.get(id=1)
     except:
-        user1 = AuthUser(id=1, first_name="Иван", last_name="Иванов", password=1234, username="user1")
+        user1 = AuthUser.objects.create(
+                username="user1",
+                password='1234',
+                email='email',
+                first_name="Иван",
+                last_name="Иванов",
+                is_active = True
+            )
         user1.save()
     return user1
 
@@ -92,6 +100,7 @@ class tags_list_api(APIView):
         serializer = self.serializer_class(tag_list, many=True)
         return Response({'tags': serializer.data, 'current object id': current_object_id, 'count object items': count_object_items})
 
+    @swagger_auto_schema(request_body=TagsSerializer)
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data, partial=True)
         if 'tag_image' in serializer.initial_data:
@@ -109,6 +118,8 @@ class tags_list_api(APIView):
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['post'])
 def image_add(request, tag_id, format=None):
     tag, created = Tags.objects.get_or_create(id=tag_id)
@@ -127,6 +138,7 @@ class tag_api(APIView):
         serializer = self.serializer_class(tag)
         return Response(serializer.data)
 
+    @swagger_auto_schema(request_body=TagsSerializer)
     def put(self, request, tag_id, format=None):
         tag = get_object_or_404(self.model_class, id=tag_id)
         serializer = self.serializer_class(tag, data=request.data, partial=True)
@@ -140,6 +152,7 @@ class tag_api(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(request_body=ObjectsTagsItemSerializer)
     def post(self, request, tag_id, format=None):
         user1 = user()
         user_object, created = Objects.objects.get_or_create(creator=user1, obj_status="Черновик")
@@ -150,6 +163,8 @@ class tag_api(APIView):
             new_object_tag.save()
             return Response(ObjectsTagsItemSerializer(new_object_tag).data, status=status.HTTP_200_OK)
         return Response({'Предупреждение': 'Данный тег уже в заявке'},status=status.HTTP_208_ALREADY_REPORTED)
+
+    @swagger_auto_schema(request_body=TagsSerializer)
     def delete(self, request, tag_id, format=None):
         tag = get_object_or_404(self.model_class, id=tag_id)
         tags = ObjectsTagsItem.objects.filter(tag = tag_id)
@@ -165,7 +180,7 @@ class object_cart_api(APIView):
         user1 = user()
         start_date=request.query_params.get('start_date', None)
         end_date=request.query_params.get('end_date', None)
-        status = request.query_params.get('status')
+        status_1 = request.query_params.get('status')
         object_list = user1.created_objects.exclude(obj_status="Черновик").exclude(obj_status="Удален")
         if start_date or end_date:
             if not (start_date):
@@ -174,8 +189,8 @@ class object_cart_api(APIView):
                 object_list = object_list.filter(formation_datetime__gte= start_date)
             else:
                 object_list = object_list.filter(formation_datetime__range=[start_date, end_date])
-        if status:
-            object_list = object_list.filter(obj_status=status)
+        if status_1:
+            object_list = object_list.filter(obj_status=status_1)
         if not (object_list):
             return Response(status=status.HTTP_404_NOT_FOUND)
         else:
@@ -188,6 +203,8 @@ class one_object_api(APIView):
         object = get_object_or_404(self.model_class, id=object_id)
         serializer = self.serializer_class(object)
         return Response(serializer.data)
+
+    @swagger_auto_schema(request_body=ObjectSerializer)
     def put(self, request, object_id, format=None):
         object = get_object_or_404(self.model_class, id=object_id)
         serializer = self.serializer_class(object, data=request.data, partial=True)
@@ -195,13 +212,16 @@ class one_object_api(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(request_body=ObjectSerializer)
     def delete(self, request, object_id, format=None):
         object = get_object_or_404(self.model_class, id=object_id)
         object.obj_status = "Удален"
         object.completion_datetime = timezone.now()
         object.save()
-        return Response({'Успешно': 'Объект переведен в статус '"'Удален'"'.'},status=status.HTTP_204_NO_CONTENT)
-
+        serializer = self.serializer_class(object)
+        return Response({'Успешно': 'Объект переведен в статус '"'Удален'"'.', 'Объект:':serializer.data},status=status.HTTP_204_NO_CONTENT)
+@swagger_auto_schema(method='put', request_body=ObjectSerializer)
 @api_view(['put'])
 def save_creator(request, object_id, format=None):
     object = get_object_or_404(Objects, id=object_id)
@@ -217,6 +237,7 @@ def save_creator(request, object_id, format=None):
         object.save()
         return Response(serialized.data, status=status.HTTP_200_OK)
     return Response({'Ошибка': 'Какое-то из полей не заполнено.'}, status=status.HTTP_400_BAD_REQUEST)
+@swagger_auto_schema(method='put', request_body=ObjectSerializer)
 @api_view(['put'])
 def save_moderate(request, object_id, format=None):
     accepted = request.data.get('accept')
@@ -236,10 +257,14 @@ def save_moderate(request, object_id, format=None):
 class objects_tags_item(APIView):
     model_class = ObjectsTagsItem
     serializer_class = ObjectsTagsItemSerializer
+
+    @swagger_auto_schema(request_body=ObjectsTagsItemSerializer)
     def delete(self, request, tag_id, object_id, format=None):
         deleted_tag = get_object_or_404(self.model_class, object=object_id, tag=tag_id)
         deleted_tag.delete()
         return Response(status=status.HTTP_202_ACCEPTED)
+
+    @swagger_auto_schema(request_body=ObjectsTagsItemSerializer)
     def put(self, request, tag_id, object_id, format=None):
         edited_tag = get_object_or_404(self.model_class, object=object_id, tag=tag_id)
         main_tag = request.data.get('is_main')
@@ -259,6 +284,8 @@ class objects_tags_item(APIView):
 class user_api(APIView):
     model_class = get_user_model()
     serializer_class = UserSerializer
+
+    @swagger_auto_schema(request_body=UserSerializer)
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
@@ -272,6 +299,7 @@ class user_api(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @swagger_auto_schema(request_body=UserSerializer)
     def put(self, request):
         user1 = user()
         serializer = self.serializer_class(user1, data=request.data, partial=True)
