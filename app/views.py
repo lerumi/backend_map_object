@@ -1,37 +1,88 @@
+import uuid
+
 from django.utils import timezone
 from django.db import connection
 from django.shortcuts import render, redirect
-from .models import Tags, Objects, ObjectsTagsItem, AuthUser
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+
+from .models import Tags, Objects, ObjectsTagsItem, CustomUser
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-from app.serializers import TagsSerializer, ObjectsSerializer, ObjectsTagsItemSerializer, ObjectSerializer, UserSerializer
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from app.serializers import TagsSerializer, ObjectsSerializer, ObjectsTagsItemSerializer, ObjectSerializer, CustomUserSerializer
 from django.contrib.auth import get_user_model
 from .minio import *
 from drf_yasg.utils import swagger_auto_schema
 from django.db.models import Q
 from rest_framework.filters import OrderingFilter
+from django.contrib.auth import authenticate, login, logout
+from django.http import HttpResponse
+from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
+from django.views.decorators.csrf import csrf_exempt
+from app.permission import IsManager, IsSimpleUser, AuthBySessionID
+from app.redis import session_storage
+class UserViewSet(viewsets.ModelViewSet):
+    """Класс, описывающий методы работы с пользователями
+    Осуществляет связь с таблицей пользователей в базе данных
+    """
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserSerializer
+    model_class = CustomUser
+    def create(self, request):
+        """
+        Функция регистрации новых пользователей
+        Если пользователя c указанным в request email ещё нет, в БД будет добавлен новый пользователь.
+        """
+        if self.model_class.objects.filter(email=request.data['email']).exists():
+            return Response({'status': 'Exist'}, status=400)
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            print(serializer.data)
+            self.model_class.objects.create_user(email=serializer.data['email'],
+                                     password=serializer.data['password'],
+                                     is_superuser=serializer.data['is_superuser'],
+                                     is_staff=serializer.data['is_staff'])
+            return Response({'status': 'Success'}, status=200)
+        return Response({'status': 'Error', 'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+def method_permission_classes(classes):
+    def decorator(func):
+        def decorated_func(self, *args, **kwargs):
+            self.permission_classes = classes
+            self.check_permissions(self.request)
+            self.perform_authentication(self.request)
+            return func(self, *args, **kwargs)
+        return decorated_func
+    return decorator
+@csrf_exempt
+@swagger_auto_schema(method='post', request_body=CustomUserSerializer)
+@permission_classes([AllowAny])
+@authentication_classes([])
+@api_view(['Post'])
+def login_view(request):
+    username = request.data["email"]
+    password = request.data["password"]
+    user = authenticate(request, email=username, password=password)
+    if user is not None:
+        random_key = str(uuid.uuid4())
+        session_storage.set(random_key, username)
+        response_data = {
+            'status': 'ok',
+            'session_id': random_key
+        }
+        response = Response(response_data, status=status.HTTP_201_CREATED)
+        response.set_cookie("session_id", random_key, samesite="lax")
+        return response
+    else:
+        return HttpResponse("{'status': 'error', 'error': 'login failed'}")
 
-def user():
-    try:
-        user1 = AuthUser.objects.get(id=1)
-    except:
-        user1 = AuthUser.objects.create(
-                username="user1",
-                password='1234',
-                email='email',
-                first_name="Иван",
-                last_name="Иванов",
-                is_active = True
-            )
-        user1.save()
-    return user1
-
+def logout_view(request):
+    logout(request._request)
+    return Response({'status': 'Success'})
 
 def tag_list(request):
-    user1 = user()
+    user1 = CustomUser.objects.get(id = request.user.id)
     search_tag = request.GET.get('search_tag')
     if (search_tag is None):
         search_tag = ''
@@ -60,7 +111,7 @@ def object(request, object_id):
     return render(request, 'cart.html', {'object': object_item, 'object_tags_list': tag_items})
 
 def add_tag_into_object(request):
-    user1 = user()
+    user1 = CustomUser.objects.get(id = request.user.id)
     tag_id = request.POST.get('tag_id')
     tag = Tags.objects.get(id=tag_id)
     user_object, created = Objects.objects.get_or_create(creator=user1, obj_status="Черновик")
@@ -80,10 +131,14 @@ def delete_draft_object(request):
 
 
 class tags_list_api(APIView):
+    authentication_classes = [AuthBySessionID]
+    permission_classes = [IsManager | IsSimpleUser]
     model_class = Tags
     serializer_class = TagsSerializer
+
+    @method_permission_classes((AllowAny,))
     def get(self, request, format=None):
-        user1 = user()
+        user1 = CustomUser.objects.get(id = request.user.id)
         search_tag = request.query_params.get('search_tag')
         if (search_tag is None):
             search_tag = ''
@@ -101,29 +156,21 @@ class tags_list_api(APIView):
         return Response({'tags': serializer.data, 'current object id': current_object_id, 'count object items': count_object_items})
 
     @swagger_auto_schema(request_body=TagsSerializer)
+    @method_permission_classes((IsManager, ))
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data, partial=True)
-        if 'tag_image' in serializer.initial_data:
-            pic_result1 = 'pic'
-            serializer.initial_data['tag_image'] = pic_result1
-            if serializer.is_valid():
-                new_tag = serializer.save()
-                pic_result = add_pic(new_tag, request.FILES.get('tag_image'))
-                if 'error' in pic_result.data:
-                    return pic_result
-                pic_result1 = pic_result.data['result']
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+@swagger_auto_schema(method='post', request_body=TagsSerializer)
 @api_view(['post'])
+@permission_classes([IsManager])
+@authentication_classes([])
 def image_add(request, tag_id, format=None):
     tag, created = Tags.objects.get_or_create(id=tag_id)
-    pic = request.FILES.get('pic')
+    pic = request.FILES.get('tag_image')
     result = add_pic(tag, pic)
     if created:
         tag.delete()
@@ -133,28 +180,30 @@ def image_add(request, tag_id, format=None):
 class tag_api(APIView):
     model_class = Tags
     serializer_class = TagsSerializer
+    authentication_classes = [AuthBySessionID]
+    permission_classes = [IsManager | IsSimpleUser]
+
+    @method_permission_classes((AllowAny,))
     def get(self, request, tag_id, format=None):
         tag = get_object_or_404(self.model_class, id=tag_id)
         serializer = self.serializer_class(tag)
         return Response(serializer.data)
 
+
     @swagger_auto_schema(request_body=TagsSerializer)
+    @method_permission_classes([IsManager])
     def put(self, request, tag_id, format=None):
         tag = get_object_or_404(self.model_class, id=tag_id)
         serializer = self.serializer_class(tag, data=request.data, partial=True)
-        if 'tag_image' in serializer.initial_data:
-            pic_result = add_pic(tag, serializer.initial_data['tag_image'])
-            if 'error' in pic_result.data:
-                return pic_result
-            serializer.initial_data['tag_image'] = pic_result.data['result']
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @method_permission_classes([IsManager | IsSimpleUser])
     @swagger_auto_schema(request_body=ObjectsTagsItemSerializer)
     def post(self, request, tag_id, format=None):
-        user1 = user()
+        user1 = CustomUser.objects.get(id = request.user.id)
         user_object, created = Objects.objects.get_or_create(creator=user1, obj_status="Черновик")
         tag = get_object_or_404(self.model_class, id=tag_id)
         user_object.save()
@@ -164,7 +213,7 @@ class tag_api(APIView):
             return Response(ObjectsTagsItemSerializer(new_object_tag).data, status=status.HTTP_200_OK)
         return Response({'Предупреждение': 'Данный тег уже в заявке'},status=status.HTTP_208_ALREADY_REPORTED)
 
-    @swagger_auto_schema(request_body=TagsSerializer)
+    @method_permission_classes((IsManager,))
     def delete(self, request, tag_id, format=None):
         tag = get_object_or_404(self.model_class, id=tag_id)
         tags = ObjectsTagsItem.objects.filter(tag = tag_id)
@@ -176,12 +225,19 @@ class tag_api(APIView):
 class object_cart_api(APIView):
     model_class = Objects
     serializer_class = ObjectsSerializer
+    authentication_classes = [SessionAuthentication, BasicAuthentication, AuthBySessionID]
+    permission_classes = [IsManager | IsSimpleUser]
+
+    @method_permission_classes([IsSimpleUser | IsManager])
     def get(self, request, format=None):
-        user1 = user()
-        start_date=request.query_params.get('start_date', None)
-        end_date=request.query_params.get('end_date', None)
+        user1 = CustomUser.objects.get(id = request.user.id)
+        start_date = request.query_params.get('start_date', None)
+        end_date = request.query_params.get('end_date', None)
         status_1 = request.query_params.get('status')
-        object_list = user1.created_objects.exclude(obj_status="Черновик").exclude(obj_status="Удален")
+        if user1.is_staff:
+            object_list = self.model_class.objects
+        else:
+            object_list = user1.created_objects.exclude(obj_status="Черновик").exclude(obj_status="Удален")
         if start_date or end_date:
             if not (start_date):
                 object_list = object_list.filter(formation_datetime__lte=end_date)
@@ -199,12 +255,17 @@ class object_cart_api(APIView):
 class one_object_api(APIView):
     model_class = Objects
     serializer_class = ObjectSerializer
+    authentication_classes = [SessionAuthentication, BasicAuthentication, AuthBySessionID]
+    permission_classes = [IsManager | IsSimpleUser]
+
+    @method_permission_classes([IsManager | IsSimpleUser])
     def get(self, request, object_id, format=None):
         object = get_object_or_404(self.model_class, id=object_id)
         serializer = self.serializer_class(object)
         return Response(serializer.data)
 
     @swagger_auto_schema(request_body=ObjectSerializer)
+    @method_permission_classes([IsManager | IsSimpleUser])
     def put(self, request, object_id, format=None):
         object = get_object_or_404(self.model_class, id=object_id)
         serializer = self.serializer_class(object, data=request.data, partial=True)
@@ -213,7 +274,7 @@ class one_object_api(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(request_body=ObjectSerializer)
+    @method_permission_classes((IsSimpleUser,))
     def delete(self, request, object_id, format=None):
         object = get_object_or_404(self.model_class, id=object_id)
         object.obj_status = "Удален"
@@ -221,14 +282,16 @@ class one_object_api(APIView):
         object.save()
         serializer = self.serializer_class(object)
         return Response({'Успешно': 'Объект переведен в статус '"'Удален'"'.', 'Объект:':serializer.data},status=status.HTTP_204_NO_CONTENT)
-@swagger_auto_schema(method='put', request_body=ObjectSerializer)
+
 @api_view(['put'])
+@authentication_classes([AuthBySessionID])
+@permission_classes((IsSimpleUser, ))
 def save_creator(request, object_id, format=None):
     object = get_object_or_404(Objects, id=object_id)
     serialized = ObjectsSerializer(object)
     main_tag = object.object_set.filter(is_main="True").first()
     if(object.obj_status != "Черновик"):
-        return Response({'Ошибка': 'Не хватает прав для редактирования.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'Ошибка': 'Не хватает прав для редактирования.'}, status=status.HTTP_403_FORBIDDEN)
     if object.obj_name != "" and object.obj_description != "" and object.obj_address != "" and object.obj_coordinates != "":
         if( main_tag is None):
             return Response({'Ошибка': 'Не выбран главный тег!'}, status=status.HTTP_400_BAD_REQUEST)
@@ -237,8 +300,9 @@ def save_creator(request, object_id, format=None):
         object.save()
         return Response(serialized.data, status=status.HTTP_200_OK)
     return Response({'Ошибка': 'Какое-то из полей не заполнено.'}, status=status.HTTP_400_BAD_REQUEST)
-@swagger_auto_schema(method='put', request_body=ObjectSerializer)
 @api_view(['put'])
+@authentication_classes([AuthBySessionID])
+@permission_classes([IsManager])
 def save_moderate(request, object_id, format=None):
     accepted = request.data.get('accept')
     object = get_object_or_404(Objects, id=object_id)
@@ -250,21 +314,24 @@ def save_moderate(request, object_id, format=None):
     else:
         object.obj_status = "Отклонен"
     object.completion_datetime = timezone.now()
-    object.moderator = user()
+    print(request.user.id)
+    object.moderator = CustomUser.objects.filter(id = request.user.id).first()
     object.save()
     return Response(serialized.data, status=status.HTTP_202_ACCEPTED)
 
 class objects_tags_item(APIView):
     model_class = ObjectsTagsItem
     serializer_class = ObjectsTagsItemSerializer
+    authentication_classes = [AuthBySessionID]
+    permission_classes = [IsManager | IsSimpleUser]
 
-    @swagger_auto_schema(request_body=ObjectsTagsItemSerializer)
+    @method_permission_classes([IsManager | IsSimpleUser])
     def delete(self, request, tag_id, object_id, format=None):
         deleted_tag = get_object_or_404(self.model_class, object=object_id, tag=tag_id)
         deleted_tag.delete()
         return Response(status=status.HTTP_202_ACCEPTED)
 
-    @swagger_auto_schema(request_body=ObjectsTagsItemSerializer)
+    @method_permission_classes([IsManager | IsSimpleUser])
     def put(self, request, tag_id, object_id, format=None):
         edited_tag = get_object_or_404(self.model_class, object=object_id, tag=tag_id)
         main_tag = request.data.get('is_main')
@@ -281,52 +348,5 @@ class objects_tags_item(APIView):
         return Response(status=status.HTTP_202_ACCEPTED)
 
 
-class user_api(APIView):
-    model_class = get_user_model()
-    serializer_class = UserSerializer
-
-    @swagger_auto_schema(request_body=UserSerializer)
-    def post(self, request, format=None):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            self.model_class.objects.create_user(
-                username=request.data.get('username'),
-                password=request.data.get('password'),
-                email=request.data.get('email'),
-                first_name=request.data.get('first_name'),
-                last_name=request.data.get('last_name')
-            )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @swagger_auto_schema(request_body=UserSerializer)
-    def put(self, request):
-        user1 = user()
-        serializer = self.serializer_class(user1, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            if 'password' in serializer.validated_data:
-                user1.set_password(serializer.validated_data.get('password'))
-                user1.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['post'])
-def autentification(request, format=None):
-    username = request.data.get('username')
-    password = request.data.get('password')
-    user_auto = get_user_model().objects.filter(username=username)
-    if user_auto:
-        user_auto = get_user_model().objects.get(username=username)
-        if user_auto.check_password(password) and user_auto.username == username:
-            return Response({'Успех': 'Авторизация прошла успешно'}, status=status.HTTP_200_OK)
-        return Response({'Ошибка': 'Неверный пароль'}, status=status.HTTP_401_UNAUTHORIZED)
-    else:
-        Response({'Ошибка': 'Пользователя не существует'}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-
-@api_view(['post'])
-def logout(request):
-    return Response({'Успех': 'Вы вышли из аккаунта'}, status=status.HTTP_401_UNAUTHORIZED)

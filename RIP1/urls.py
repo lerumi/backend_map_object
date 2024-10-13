@@ -15,15 +15,17 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from app.views import tag_list, add_tag_into_object, tags_list_api
 from app.views import tag, tag_api
-from app.views import object, delete_draft_object, object_cart_api, one_object_api, save_creator, save_moderate
+from app.views import object, delete_draft_object, object_cart_api, one_object_api, save_creator, save_moderate, UserViewSet
 from app.views import objects_tags_item
-from app.views import user_api, autentification, logout, image_add
+from app.views import login_view, logout_view, image_add
 from drf_yasg.views import  get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
+
+from rest_framework.routers import DefaultRouter
 schema_view = get_schema_view(
    openapi.Info(
       title="Snippets API",
@@ -36,6 +38,8 @@ schema_view = get_schema_view(
    public=True,
    permission_classes=(permissions.AllowAny,),
 )
+router = DefaultRouter()
+router.register(r'user', UserViewSet, basename='user')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', tag_list, name='tags'),
@@ -54,11 +58,11 @@ urlpatterns = [
     path('api/object/moderator/<int:object_id>', save_moderate, name='save_object_moderator'),
 
     path('api/object_item/<int:object_id>/<int:tag_id>', objects_tags_item.as_view(), name='object_item'),
-    path('api/user/registr', user_api.as_view(), name='registr'),
-    path('api/user/auth', autentification, name='auth'),
-    path('api/user/logout', logout, name='logout'),
+    path('api/user/login', login_view, name='login'),
+    path('api/user/logout', logout_view, name='logout'),
 
     path('api/add_tag_image/<int:tag_id>', image_add, name='image_add'),
 
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('api/', include(router.urls)),
 ]
